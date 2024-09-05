@@ -1,8 +1,8 @@
 # Create Virtual Environment
-python -m venv whisperx env
+python -m venv env
 
 # Activate Virtual Environment
-source whisperx env/bin/activate
+source env env/bin/activate
 
 
 

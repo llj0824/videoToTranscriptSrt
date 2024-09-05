@@ -32,7 +32,7 @@ def download_youtube_audio(youtube_url, output_filename):
 def transcribe_audio(audio_path, config):
     model_name = config['WHISPER']['model']
     model = whisper.load_model(model_name)
-    result = model.transcribe(audio_path)
+    result = model.transcribe(audio_path,verbose=True)
     return result["text"]
 
 # Function to perform diarization using Pyannote
