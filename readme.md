@@ -2,7 +2,7 @@
 python -m venv env
 
 # Activate Virtual Environment
-source env env/bin/activate
+source env/bin/activate
 
 
 
