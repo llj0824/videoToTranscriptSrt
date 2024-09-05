@@ -1,0 +1,5 @@
+yt-dlp
+git+https://github.com/openai/whisper.git
+pyannote.audio
+faster-whisper
+tqdm
