@@ -1,5 +1,4 @@
 yt-dlp
 git+https://github.com/openai/whisper.git
 pyannote.audio
-faster-whisper
-tqdm
+faster-whisper @ https://github.com/SYSTRAN/faster-whisper/archive/refs/heads/master.tar.gz
