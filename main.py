@@ -8,9 +8,14 @@ from pyannote.audio import Pipeline
 import configparser
 import datetime
 from faster_whisper import WhisperModel, BatchedInferencePipeline
+import logging
 
 # Function to load configuration
 def load_config():
+    # Set up logging
+    logging.basicConfig()
+    logging.getLogger("faster_whisper").setLevel(logging.DEBUG)
+
     config = configparser.ConfigParser()
     config.read('config.ini')
     return config
@@ -30,6 +35,18 @@ def download_youtube_audio(youtube_url, output_filename):
         ydl.download([youtube_url])
     return f"{output_filename}.mp3"
 
+# Function to convert MP4 to MP3
+def convert_mp4_to_mp3(input_file):
+    output_file = os.path.splitext(input_file)[0] + ".mp3"
+    command = f"ffmpeg -i '{input_file}' -vn -acodec libmp3lame -q:a 2 '{output_file}'"
+    result = os.system(command)
+    if result == 0:
+        print(f"Successfully converted {input_file} to {output_file}")
+        return output_file
+    else:
+        print(f"Error converting {input_file} to MP3")
+        return None
+
 # Function to transcribe audio using Whisper
 def transcribe_audio(audio_path, config):
     """
@@ -44,7 +61,8 @@ def transcribe_audio(audio_path, config):
     """
     model_size = config['WHISPER']['model']
     device = config['WHISPER'].get("device", "cpu")  # e.g., "cuda", "cpu"
-    compute_type = config['WHISPER'].get("compute_type", "int8_float16")  # e.g., "float16", "int8_float16", "int8"
+    # https://opennmt.net/CTranslate2/python/ctranslate2.models.Whisper.html#ctranslate2.models.Whisper.compute_type
+    compute_type = "float32"
 
     # Initialize the Whisper model with the given settings
     model = WhisperModel(model_size, device=device, compute_type=compute_type)
@@ -54,7 +72,7 @@ def transcribe_audio(audio_path, config):
     
     # Perform the transcription using batched inference
     batch_size = config['WHISPER'].get("batch_size", 16)  # Default batch size is 16
-    segments, info = batched_model.transcribe(audio_path, batch_size=batch_size)
+    segments, info = batched_model.transcribe(audio_path, batch_size=batch_size, log_progress=True)
 
     # Convert list of segments into the format that your application needs
     transcriptions = []
@@ -98,8 +116,22 @@ def main():
         output_filename, _ = os.path.splitext(filename)
         audio_path = download_youtube_audio(url, output_filename)
     elif input_type == "2":
-        audio_path = input("Enter filepath: ").strip()
-        output_filename, _ = os.path.splitext(os.path.basename(audio_path))
+        filepath = input("Enter filepath: ").strip()
+        file_extension = os.path.splitext(filepath)[1].lower()
+        
+        if file_extension == '.mp4':
+            print("Converting MP4 to MP3...")
+            filepath = convert_mp4_to_mp3(filepath)
+            if filepath is None:
+                print("Conversion failed. Exiting.")
+                return
+        elif file_extension != '.mp3':
+            print("Unsupported file format. Please provide an MP3 or MP4 file.")
+            return
+        
+        # Extract filename without extension
+        audio_path = filepath
+        output_filename, _ = os.path.splitext(os.path.basename(filepath))
     else:
         print("Invalid input type.")
         return
