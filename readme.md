@@ -111,7 +111,3 @@ The full transcription can be found in the `transcripts/` folder. For example, `
 ## License
 
 This project is licensed under the MIT License. See the LICENSE file for more details.
-
----
-
-This README now includes the correct output format, demonstrating the structure and content users can expect.
