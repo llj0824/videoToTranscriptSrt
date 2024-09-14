@@ -104,6 +104,27 @@ def combine_transcription_and_diarization(transcription, diarization):
         combined_output.append(f"[{turn.start:.2f} - {turn.end:.2f}] {speaker}: {segment_text}")
     return "\n".join(combined_output)
 
+
+# Assume transcribe_audio and perform_diarization are already defined elsewhere
+# Helper function to format transcription into SRT format
+def convert_to_srt(transcription):
+    srt_output = []
+    for i, entry in enumerate(transcription):
+        start_time = format_timestamp(entry["start"])
+        end_time = format_timestamp(entry["end"])
+        text = entry["text"]
+        srt_output.append(f"{i + 1}\n{start_time} --> {end_time}\n{text}\n")
+    return "\n".join(srt_output)
+
+# Helper function to format seconds into SRT timestamp format
+def format_timestamp(seconds):
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    secs = int(seconds % 60)
+    milliseconds = int((seconds % 1) * 1000)
+    return f"{hours:02}:{minutes:02}:{secs:02},{milliseconds:03}"
+
+# Updated main function
 def main():
     config = load_config()
 
@@ -149,14 +170,24 @@ def main():
 
     # Format the timestamp as "AbbrOfMonth/Day/Year_HHMMSS"
     now = datetime.datetime.now()
-    timestamp = now.strftime("%b%d%Y_%H%M%S")  # Example: Sep052024_150450
+    timestamp = now.strftime("%b%d%Y_%H%M%S")  # Example: Sep142024_161331
 
-    # Write output to file
-    output_filepath = f"transcripts/{output_filename}_{timestamp}.txt"
-    with open(output_filepath, 'w') as f:
+    # Write output to TXT file
+    txt_output_filepath = f"transcripts/{output_filename}_{timestamp}.txt"
+    with open(txt_output_filepath, 'w') as f:
         json.dump(final_output, f, indent=2)
+    print(f"Transcription completed. TXT output saved to {txt_output_filepath}")
 
-    print(f"Transcription completed. Output saved to {output_filepath}")
+    # Convert transcription to SRT
+    srt_output = convert_to_srt(final_output)
 
+    # Write output to SRT file
+    srt_output_filepath = f"transcripts/{output_filename}_{timestamp}.srt"
+    with open(srt_output_filepath, 'w') as f:
+        f.write(srt_output)
+    print(f"SRT output saved to {srt_output_filepath}")
+
+    return txt_output_filepath, srt_output_filepath
+    
 if __name__ == "__main__":
     main()
