@@ -1,82 +1,112 @@
 # Video to Transcript with Diarization
 
-This project provides scripts to generate a transcript with speaker diarization from a video file or a YouTube URL. The result is saved as an SRT (SubRip Subtitle) file, which is commonly used for subtitles.
+This project allows users to generate a transcript from a video file or a YouTube URL, with optional speaker annotation. The transcript is saved as an SRT or text file, which is widely used for subtitles.
 
 ## Features
-- **Speaker Diarization**: Detect and differentiate between multiple speakers in the transcript.
-- **Supports Video Files & YouTube Links**: Can process local video files or YouTube URLs.
+- **Speaker annotation (Diarization)**: Supports multiple speakers and diarization for accurate transcription.
+- **Video and YouTube Support**: Process local video files or YouTube URLs for transcription.
+- **FFmpeg Integration**: Automatically converts MP4 files to MP3 for audio extraction.
 
 ## Requirements
 
-To install the required dependencies, ensure you have Python 3.x installed, then run:
+To get started, install the necessary dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
+Ensure you have `ffmpeg` installed on your system. For macOS, you can install it via Homebrew:
+
+```bash
+brew install ffmpeg
+```
+
 ## Configuration
 
-Before running the script, you need to configure some settings in the `config.ini` file:
+Before running the script, update the `config.ini` file to include your credentials:
 
-- `video_source`: Path to the video file or YouTube URL.
-- `output_path`: Path where the SRT file will be saved.
-- `language`: Language of the transcript.
+```ini
+[WHISPER]
+model = distil-large-v3
+
+[PYANNOTE]
+auth_token = YOUR_HUGGING_FACE_TOKEN
+
+[OPENAI]
+api_key = YOUR_OPENAI_API_KEY
+```
+
+- **WHISPER `model`**: Specifies the model used for transcription.
+- **PYANNOTE `auth_token`**: Replace with your Hugging Face token to enable speaker diarization.
+- **OPENAI `api_key`**: Add your OpenAI API key for Whisper integration.
 
 ## How to Use
 
-1. Clone the repository:
-    ```bash
-    git clone https://github.com/llj0824/videoToTranscriptSrt
-    cd videoToTranscriptSrt
-    ```
-
-2. Modify the `config.ini` file to specify the video source and output path.
-
-3. Run the main script to process the video:
+1. **Run the script**:
     ```bash
     python main.py
     ```
 
-4. The transcript with speaker diarization will be generated and saved as an SRT file in the specified output directory.
+2. **Input type**: 
+    - You will be prompted to choose between a YouTube URL (`1`) or a local file (`2`).
+    - If choosing a file, provide the path to an MP4 or MP3 file.
 
-### Example Usage
+3. **Diarization**: 
+    - Choose `y` or `n` to enable or disable speaker diarization.
 
-- For a local video file:
-  - Set `video_source = /path/to/video.mp4` in `config.ini`.
-  - Run `python main.py`.
+4. **Output**:
+    - The transcription will be saved in the `transcripts/` folder with a timestamped filename.
+
+## Example Usage
 
 - For a YouTube URL:
-  - Set `video_source = https://youtube.com/example_video` in `config.ini`.
-  - Run `python main.py`.
+  ```bash
+  python main.py
+  Enter input type, [1] for YouTube URL, [2] for filepath: 1
+  Enter URL: https://youtube.com/example
+  Enter filename: example_transcript
+  Enable diarization for multiple speakers? [y/n]: n
+  ```
 
-## Files Description
+- For a local MP4 file:
+  ```bash
+  python main.py
+  Enter input type, [1] for YouTube URL, [2] for filepath: 2
+  Enter filepath: /path/to/video.mp4
+  Enable diarization for multiple speakers? [y/n]: y
+  ```
 
-- **main.py**: This script orchestrates the transcription process. It reads the video source, invokes the transcription and diarization engine, and saves the result.
-  
-- **videoToSrt.py**: This script handles the core functionality of converting the audio into text and creating the SRT file.
+## Output Example
 
-## Dependencies
+Below is a sample output from a transcription run:
 
-Make sure you have the following dependencies installed:
+```json
+[
+  {
+    "start": 6.411,
+    "end": 33.459,
+    "text": " Everybody's asleep, man, or getting home after a long night..."
+  },
+  {
+    "start": 33.883,
+    "end": 58.316,
+    "text": " What's not always open is the opportunity to check the box in life..."
+  },
+  {
+    "start": 58.774,
+    "end": 88.303,
+    "text": " Everyone else is probably getting home from some party right now..."
+  },
+  ...
+]
+```
 
-- `whisper` (for transcription)
-- `pytube` (for YouTube download)
-- `pydub` (for audio processing)
-- Additional packages as listed in `requirements.txt`
-
-
-## To Run
-
-### Create Virtual Environment
-python -m venv env
-
-### Activate Virtual Environment
-source env/bin/activate
+The full transcription can be found in the `transcripts/` folder. For example, `transcripts/{input_filename}_{timestamp}.txt` 
 
 ## Notes
-
-- Ensure your video file is accessible, or the YouTube URL is valid.
-- The transcript might take some time depending on the length of the video and complexity of the speaker diarization.
+- The script converts MP4 files to MP3 for audio extraction using `ffmpeg`.
+- Ensure your Hugging Face and OpenAI API keys are correct in `config.ini` to enable full functionality.
+- The output is saved in the `transcripts/` directory in a timestamped text file.
 
 ## License
 
@@ -84,4 +114,4 @@ This project is licensed under the MIT License. See the LICENSE file for more de
 
 ---
 
-This README file outlines the basic steps and information needed for users to run the scripts. If there are specific functionalities or nuances in the code, feel free to adjust it accordingly.
+This README now includes the correct output format, demonstrating the structure and content users can expect.
