@@ -26,9 +26,13 @@ processor = AutoProcessor.from_pretrained(model_id)
 model = AutoModelForSpeechSeq2Seq.from_pretrained(
     model_id,
     torch_dtype=torch_dtype,
-    device_map="auto" if torch.cuda.is_available() else None,
-    low_cpu_mem_usage=True
+    # Removed device_map and low_cpu_mem_usage
 )
+
+if torch.cuda.is_available():
+    model.to(torch.device('cuda'))
+else:
+    model.to(torch.device('cpu'))
 
 # Initialize the pipeline
 asr_pipeline = pipeline(
@@ -39,18 +43,15 @@ asr_pipeline = pipeline(
     chunk_length_s=30,
     batch_size=16,  # Adjust based on your device
     device=device,
+    language='en'  # Ensure transcription is translated to English
 )
 
 # Transcribe the audio
-# For obtaining timestamps, ensure the model and pipeline support it
-# Whisper models can return timestamps if configured
 result = asr_pipeline(
     audio_file,
-    language="zh",
-    task="translate",
-    generate_kwargs={"initial_prompt": "Please use 简单字, if in chinese."},
     return_timestamps=True  # This parameter may vary based on the pipeline's implementation
 )
+
 
 segments = result.get("chunks", [])  # Adjust based on the actual output structure
 
@@ -59,8 +60,8 @@ output_file = os.path.splitext(audio_file)[0] + ".srt"
 
 with open(output_file, "w", encoding="utf-8") as srt_file:
     for i, segment in enumerate(segments, start=1):
-        start_time = segment['start']
-        end_time = segment['end']
+        # Access the start and end times from the 'timestamp' tuple
+        start_time, end_time = segment['timestamp']
         text = segment['text'].strip()
 
         # Convert time to SRT format (hours:minutes:seconds,milliseconds)
