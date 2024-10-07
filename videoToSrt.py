@@ -34,7 +34,7 @@ if torch.cuda.is_available():
 else:
     model.to(torch.device('cpu'))
 
-# Initialize the pipeline
+# Initialize the pipeline without the language parameter
 asr_pipeline = pipeline(
     "automatic-speech-recognition",
     model=model,
@@ -42,19 +42,13 @@ asr_pipeline = pipeline(
     feature_extractor=processor.feature_extractor,
     chunk_length_s=30,
     batch_size=16,  # Adjust based on your device
-    device=device,
-    language='en'  # Ensure transcription is translated to English
+    device=device
 )
 
-# Transcribe the audio
-result = asr_pipeline(
-    audio_file,
-    return_timestamps=True  # This parameter may vary based on the pipeline's implementation
-)
-
-
+# Use the pipeline with the generate_kwargs parameter for translation
+result = asr_pipeline(audio_file, generate_kwargs={"task": "translate"})
 segments = result.get("chunks", [])  # Adjust based on the actual output structure
-
+breakpoint()
 # Save the transcription as an SRT file
 output_file = os.path.splitext(audio_file)[0] + ".srt"
 
