@@ -2,6 +2,7 @@ import os
 import torch
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 import configparser
+from datetime import datetime
 
 # Function to load configuration
 def load_config():
@@ -44,25 +45,41 @@ asr_pipeline = pipeline(
     batch_size=16,  # Adjust based on your device
     device=device
 )
-
 # Use the pipeline with the generate_kwargs parameter for translation
-result = asr_pipeline(audio_file, generate_kwargs={"task": "translate"})
-segments = result.get("chunks", [])  # Adjust based on the actual output structure
-breakpoint()
-# Save the transcription as an SRT file
-output_file = os.path.splitext(audio_file)[0] + ".srt"
+# result = asr_pipeline(audio_file) # NOTE: Use if do not need translation, will have timestamps.
+result = asr_pipeline(audio_file, generate_kwargs={"task": "translate"}) # NOTE: the translation is just so off.
 
-with open(output_file, "w", encoding="utf-8") as srt_file:
-    for i, segment in enumerate(segments, start=1):
-        # Access the start and end times from the 'timestamp' tuple
-        start_time, end_time = segment['timestamp']
-        text = segment['text'].strip()
+# Get current timestamp in MM_DD_HHMM format
+timestamp = datetime.now().strftime("%m_%d_%H%M")
 
-        # Convert time to SRT format (hours:minutes:seconds,milliseconds)
-        start_time_srt = f"{int(start_time // 3600):02}:{int((start_time % 3600) // 60):02}:{int(start_time % 60):02},{int((start_time % 1) * 1000):03}"
-        end_time_srt = f"{int(end_time // 3600):02}:{int((end_time % 3600) // 60):02}:{int(end_time % 60):02},{int((end_time % 1) * 1000):03}"
+# Save the transcription as an SRT file with timestamp
+output_file = f"{os.path.splitext(audio_file)[0]}_{timestamp}.srt"
 
-        # Write to SRT file
-        srt_file.write(f"{i}\n")
-        srt_file.write(f"{start_time_srt} --> {end_time_srt}\n")
-        srt_file.write(f"{text}\n\n")
+try:
+    segments = result.get("chunks", [])  # Adjust based on the actual output structure
+
+    if not segments:
+        raise ValueError("No segments with timestamps found.")
+
+    with open(output_file, "w", encoding="utf-8") as srt_file:
+        for i, segment in enumerate(segments, start=1):
+            # Access the start and end times from the 'timestamp' tuple
+            start_time, end_time = segment['timestamp']
+            text = segment['text'].strip()
+
+            # Convert time to SRT format (hours:minutes:seconds,milliseconds)
+            start_time_srt = f"{int(start_time // 3600):02}:{int((start_time % 3600) // 60):02}:{int(start_time % 60):02},{int((start_time % 1) * 1000):03}"
+            end_time_srt = f"{int(end_time // 3600):02}:{int((end_time % 3600) // 60):02}:{int(end_time % 60):02},{int((end_time % 1) * 1000):03}"
+
+            # Write to SRT file
+            srt_file.write(f"{i}\n")
+            srt_file.write(f"{start_time_srt} --> {end_time_srt}\n")
+            srt_file.write(f"{text}\n\n")
+
+except ValueError as e:
+    error_message = f"Error: {str(e)}"
+    print(error_message)
+    with open(output_file, "w", encoding="utf-8") as srt_file:
+        srt_file.write(f"{error_message}\n\n")
+        srt_file.write("Full result:\n")
+        srt_file.write(str(result))
