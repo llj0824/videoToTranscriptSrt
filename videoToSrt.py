@@ -1,4 +1,6 @@
-import whisperx
+import os
+import torch
+from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 import configparser
 
 # Function to load configuration
@@ -10,34 +12,62 @@ def load_config():
 config = load_config()
 
 # Load audio file (change this to your MP3 file path)
-audio_file = input("Please Input mp3 filepath: ").strip()
+audio_file = input("Please input mp3 filepath: ").strip()
 
-# Load WhisperX model
-model_name = config['WHISPER']['model']
-model = whisperx.load_model(model_name, device="cpu")  # Use "cpu" if you don't have a GPU
+# Set device and data type
+device = 0 if torch.cuda.is_available() else -1  # -1 for CPU
+torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 
+# Model ID from config
+model_id = config['WHISPER']['model']  # Ensure this matches the desired model
 
-# Transcribe and align the audio
-transcription = model.transcribe(audio_file)
+# Initialize processor and model
+processor = AutoProcessor.from_pretrained(model_id)
+model = AutoModelForSpeechSeq2Seq.from_pretrained(
+    model_id,
+    torch_dtype=torch_dtype,
+    device_map="auto" if torch.cuda.is_available() else None,
+    low_cpu_mem_usage=True
+)
 
-# Align with word-level timestamps
-aligned_transcription = whisperx.align(transcription["segments"], transcription["text"], audio_file)
+# Initialize the pipeline
+asr_pipeline = pipeline(
+    "automatic-speech-recognition",
+    model=model,
+    tokenizer=processor.tokenizer,
+    feature_extractor=processor.feature_extractor,
+    chunk_length_s=30,
+    batch_size=16,  # Adjust based on your device
+    device=device,
+)
 
-# Save the transcription as an SRT file. 
-# Generate the output file path by replacing the extension with '.srt'
+# Transcribe the audio
+# For obtaining timestamps, ensure the model and pipeline support it
+# Whisper models can return timestamps if configured
+result = asr_pipeline(
+    audio_file,
+    language="zh",
+    task="translate",
+    generate_kwargs={"initial_prompt": "Please use 简单字, if in chinese."},
+    return_timestamps=True  # This parameter may vary based on the pipeline's implementation
+)
+
+segments = result.get("chunks", [])  # Adjust based on the actual output structure
+
+# Save the transcription as an SRT file
 output_file = os.path.splitext(audio_file)[0] + ".srt"
 
-with open(output_file, "w") as srt_file:
-    for segment in aligned_transcription["segments"]:
-        start_time = segment["start"]
-        end_time = segment["end"]
-        text = segment["text"]
+with open(output_file, "w", encoding="utf-8") as srt_file:
+    for i, segment in enumerate(segments, start=1):
+        start_time = segment['start']
+        end_time = segment['end']
+        text = segment['text'].strip()
 
         # Convert time to SRT format (hours:minutes:seconds,milliseconds)
         start_time_srt = f"{int(start_time // 3600):02}:{int((start_time % 3600) // 60):02}:{int(start_time % 60):02},{int((start_time % 1) * 1000):03}"
         end_time_srt = f"{int(end_time // 3600):02}:{int((end_time % 3600) // 60):02}:{int(end_time % 60):02},{int((end_time % 1) * 1000):03}"
 
         # Write to SRT file
-        srt_file.write(f"{segment['id']}\n")
+        srt_file.write(f"{i}\n")
         srt_file.write(f"{start_time_srt} --> {end_time_srt}\n")
         srt_file.write(f"{text}\n\n")
